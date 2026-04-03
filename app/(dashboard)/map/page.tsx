@@ -1,5 +1,5 @@
-import { createClient } from "@/lib/supabase/server"
 import MapLoader from "@/components/map/MapLoader"
+import { DEMO_MAP_PROPERTIES } from "@/lib/demo/data"
 import type { PropertyStatus } from "@/lib/types/database.types"
 
 export const metadata = { title: "Map" }
@@ -14,16 +14,8 @@ export type MapProperty = {
   longitude: number
 }
 
-export default async function MapPage() {
-  const supabase = await createClient()
-
-  const { data } = await supabase
-    .from("properties")
-    .select("id, name, status, address_line_1, city, latitude, longitude")
-    .not("latitude", "is", null)
-    .not("longitude", "is", null)
-
-  const properties = (data ?? []) as MapProperty[]
+export default function MapPage() {
+  const properties = DEMO_MAP_PROPERTIES
 
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)]">
