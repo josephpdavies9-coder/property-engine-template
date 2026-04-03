@@ -1,16 +1,15 @@
+import { createClient } from "@/lib/supabase/server"
 import { PropertyDetailTabs } from "@/components/properties/PropertyDetailTabs"
+import type { Property } from "@/lib/types/database.types"
 import Link from "next/link"
 import { ArrowLeft, Pencil } from "lucide-react"
 import { notFound } from "next/navigation"
-import {
-  DEMO_PROPERTIES, DEMO_MORTGAGE_ROWS, DEMO_UTILITY_ROWS,
-  DEMO_CONTACT_ROWS, DEMO_COMPLIANCE_ROWS, DEMO_FILE_ROWS,
-} from "@/lib/demo/data"
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const property = DEMO_PROPERTIES.find((p) => p.id === id)
-  return { title: property?.name ?? "Property" }
+  const supabase = await createClient()
+  const { data } = await supabase.from("properties").select("name").eq("id", id).single()
+  return { title: (data as { name: string } | null)?.name ?? "Property" }
 }
 
 export default async function PropertyDetailPage({
@@ -19,66 +18,101 @@ export default async function PropertyDetailPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const property = DEMO_PROPERTIES.find((p) => p.id === id)
-  if (!property) return notFound()
+  const supabase = await createClient()
 
-  const mortgages = DEMO_MORTGAGE_ROWS
-    .filter((m) => m.property_id === id)
-    .map((m) => ({
-      id: m.id,
-      lender_name: m.lender_name,
-      product_name: m.product_name,
-      fixed_end_date: m.fixed_end_date,
-      monthly_payment: m.monthly_payment,
-      interest_rate: null,
-      loan_balance: m.loan_balance,
-      review_date: m.review_date,
-    }))
+  const [
+    { data, error },
+    { data: mortgageData },
+    { data: utilityData },
+    { data: contactData },
+    { data: complianceData },
+    { data: fileData },
+  ] = await Promise.all([
+    supabase.from("properties").select("*").eq("id", id).single(),
+    supabase
+      .from("mortgages")
+      .select("id, lender_name, product_name, fixed_end_date, monthly_payment, interest_rate, loan_balance, review_date")
+      .eq("property_id", id)
+      .order("fixed_end_date", { ascending: true, nullsFirst: false }),
+    supabase
+      .from("utilities")
+      .select("id, utility_type, supplier_name, account_number, login_url")
+      .eq("property_id", id)
+      .order("utility_type"),
+    supabase
+      .from("property_contacts")
+      .select("contacts ( id, full_name, company_name, category, phone, email )")
+      .eq("property_id", id),
+    supabase
+      .from("compliance_documents")
+      .select("id, document_type, issue_date, expiry_date, file_url")
+      .eq("property_id", id)
+      .order("expiry_date", { ascending: true, nullsFirst: false }),
+    supabase
+      .from("file_records")
+      .select("id, file_name, category, file_url, description")
+      .eq("property_id", id)
+      .order("file_name"),
+  ])
 
-  const utilities = DEMO_UTILITY_ROWS
-    .filter((u) => u.property_id === id)
-    .map((u) => ({
-      id: u.id,
-      utility_type: u.utility_type,
-      supplier_name: u.supplier_name,
-      account_number: u.account_number,
-      login_url: u.login_url,
-    }))
+  const property = data as Property | null
+  if (!property || error) return notFound()
 
-  const contacts = DEMO_CONTACT_ROWS
-    .filter((c) => c.property_count > 0)
-    .slice(0, 2)
-    .map((c) => ({
-      id: c.id,
-      full_name: c.full_name,
-      company_name: c.company_name,
-      category: c.category,
-      phone: c.phone,
-      email: c.email,
-    }))
+  type MortgageSummary = {
+    id: string
+    lender_name: string
+    product_name: string | null
+    fixed_end_date: string | null
+    monthly_payment: number | null
+    interest_rate: number | null
+    loan_balance: number | null
+    review_date: string | null
+  }
+  const mortgages = (mortgageData ?? []) as unknown as MortgageSummary[]
 
-  const complianceDocs = DEMO_COMPLIANCE_ROWS
-    .filter((c) => c.property_id === id)
-    .map((c) => ({
-      id: c.id,
-      document_type: c.document_type,
-      issue_date: c.issue_date,
-      expiry_date: c.expiry_date,
-      file_url: c.file_url,
-    }))
+  type UtilitySummary = {
+    id: string
+    utility_type: import("@/lib/types/database.types").UtilityType
+    supplier_name: string
+    account_number: string | null
+    login_url: string | null
+  }
+  const utilities = (utilityData ?? []) as unknown as UtilitySummary[]
 
-  const files = DEMO_FILE_ROWS
-    .filter((f) => f.property_id === id)
-    .map((f) => ({
-      id: f.id,
-      file_name: f.file_name,
-      category: f.category,
-      file_url: f.file_url,
-      description: f.description,
-    }))
+  type ContactSummary = {
+    id: string
+    full_name: string
+    company_name: string | null
+    category: import("@/lib/types/database.types").ContactCategory
+    phone: string | null
+    email: string | null
+  }
+  type PropertyContactRow = { contacts: ContactSummary | null }
+  const contacts = ((contactData ?? []) as unknown as PropertyContactRow[])
+    .map((r) => r.contacts)
+    .filter((c): c is ContactSummary => c !== null)
+
+  type ComplianceSummary = {
+    id: string
+    document_type: import("@/lib/types/database.types").ComplianceDocType
+    issue_date: string | null
+    expiry_date: string | null
+    file_url: string | null
+  }
+  const complianceDocs = (complianceData ?? []) as unknown as ComplianceSummary[]
+
+  type FileSummary = {
+    id: string
+    file_name: string
+    category: import("@/lib/types/database.types").FileCategory
+    file_url: string | null
+    description: string | null
+  }
+  const files = (fileData ?? []) as unknown as FileSummary[]
 
   return (
     <div>
+      {/* Nav row */}
       <div className="mb-6 flex items-center justify-between">
         <Link
           href="/properties"
@@ -96,13 +130,17 @@ export default async function PropertyDetailPage({
         </Link>
       </div>
 
+      {/* Title */}
       <div className="mb-6">
         <h1 className="text-2xl font-semibold text-stone-900 dark:text-stone-100">{property.name}</h1>
         <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">
-          {[property.address_line_1, property.city, property.postcode].filter(Boolean).join(", ")}
+          {[property.address_line_1, property.city, property.postcode]
+            .filter(Boolean)
+            .join(", ")}
         </p>
       </div>
 
+      {/* Tabbed detail panel */}
       <PropertyDetailTabs
         property={property}
         mortgages={mortgages}

@@ -1,13 +1,46 @@
+import { createClient } from "@/lib/supabase/server"
 import { PageHeader } from "@/components/shared/PageHeader"
-import { FileRecordsTable } from "@/components/files/FileRecordsTable"
-import { DEMO_FILE_ROWS } from "@/lib/demo/data"
+import { FileRecordsTable, type FileRecordRow } from "@/components/files/FileRecordsTable"
+import type { FileCategory } from "@/lib/types/database.types"
 import Link from "next/link"
 import { Plus } from "lucide-react"
 
 export const metadata = { title: "Files" }
 
-export default function FilesPage() {
-  const rows = DEMO_FILE_ROWS
+type FileWithJoins = {
+  id: string
+  property_id: string
+  file_name: string
+  category: FileCategory
+  file_url: string | null
+  description: string | null
+  properties: { name: string } | null
+}
+
+export default async function FilesPage() {
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
+    .from("file_records")
+    .select(`
+      id, property_id, file_name, category, file_url, description,
+      properties ( name )
+    `)
+    .order("file_name")
+
+  if (error) console.error("FilesPage fetch error:", error)
+
+  const rows: FileRecordRow[] = (
+    (data ?? []) as unknown as FileWithJoins[]
+  ).map((f) => ({
+    id: f.id,
+    property_id: f.property_id,
+    property_name: f.properties?.name ?? "Unknown property",
+    file_name: f.file_name,
+    category: f.category,
+    file_url: f.file_url,
+    description: f.description,
+  }))
 
   return (
     <div>

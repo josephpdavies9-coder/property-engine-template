@@ -1,13 +1,46 @@
+import { createClient } from "@/lib/supabase/server"
 import { PageHeader } from "@/components/shared/PageHeader"
-import { ContactsTable } from "@/components/contacts/ContactsTable"
-import { DEMO_CONTACT_ROWS } from "@/lib/demo/data"
+import { ContactsTable, type ContactRow } from "@/components/contacts/ContactsTable"
+import type { ContactCategory } from "@/lib/types/database.types"
 import Link from "next/link"
 import { Plus } from "lucide-react"
 
 export const metadata = { title: "Contacts" }
 
-export default function ContactsPage() {
-  const rows = DEMO_CONTACT_ROWS
+type ContactWithCount = {
+  id: string
+  full_name: string
+  company_name: string | null
+  category: ContactCategory
+  phone: string | null
+  email: string | null
+  property_contacts: { property_id: string }[]
+}
+
+export default async function ContactsPage() {
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
+    .from("contacts")
+    .select(`
+      id, full_name, company_name, category, phone, email,
+      property_contacts ( property_id )
+    `)
+    .order("full_name")
+
+  if (error) console.error("ContactsPage fetch error:", error)
+
+  const rows: ContactRow[] = (
+    (data ?? []) as unknown as ContactWithCount[]
+  ).map((c) => ({
+    id: c.id,
+    full_name: c.full_name,
+    company_name: c.company_name,
+    category: c.category,
+    phone: c.phone,
+    email: c.email,
+    property_count: c.property_contacts?.length ?? 0,
+  }))
 
   return (
     <div>
