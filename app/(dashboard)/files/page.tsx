@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { PageHeader } from "@/components/shared/PageHeader"
 import { FileRecordsTable, type FileRecordRow } from "@/components/files/FileRecordsTable"
+import { ExportCsvButton } from "@/components/shared/ExportCsvButton"
 import type { FileCategory } from "@/lib/types/database.types"
 import Link from "next/link"
 import { Plus } from "lucide-react"
@@ -42,19 +43,30 @@ export default async function FilesPage() {
     description: f.description,
   }))
 
+  const csvData = rows.map(r => ({
+    Property: r.property_name,
+    "File Name": r.file_name,
+    Category: r.category.replace(/_/g, ' '),
+    Description: r.description,
+    URL: r.file_url,
+  }))
+
   return (
     <div>
       <PageHeader
         title="Files"
         description={`${rows.length} file${rows.length !== 1 ? "s" : ""} across your portfolio.`}
         action={
-          <Link
-            href="/files/new"
-            className="inline-flex items-center gap-2 rounded-lg bg-stone-900 dark:bg-stone-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-stone-800 dark:hover:bg-stone-600 transition-colors"
-          >
-            <Plus className="h-4 w-4" />
-            Add file
-          </Link>
+          <div className="flex items-center gap-2">
+            <ExportCsvButton data={csvData} filename="files" />
+            <Link
+              href="/files/new"
+              className="inline-flex items-center gap-2 rounded-lg bg-stone-900 dark:bg-stone-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-stone-800 dark:hover:bg-stone-600 transition-colors"
+            >
+              <Plus className="h-4 w-4" />
+              Add file
+            </Link>
+          </div>
         }
       />
       <FileRecordsTable data={rows} />

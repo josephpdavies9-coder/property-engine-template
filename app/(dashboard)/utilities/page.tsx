@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { PageHeader } from "@/components/shared/PageHeader"
 import { UtilitiesTable, type UtilityRow } from "@/components/utilities/UtilitiesTable"
+import { ExportCsvButton } from "@/components/shared/ExportCsvButton"
 import type { UtilityType } from "@/lib/types/database.types"
 import Link from "next/link"
 import { Plus } from "lucide-react"
@@ -48,19 +49,31 @@ export default async function UtilitiesPage() {
     username: u.utility_credentials?.[0]?.username ?? null,
   }))
 
+  const csvData = rows.map(r => ({
+    Property: r.property_name,
+    Type: r.utility_type.replace(/_/g, ' '),
+    Supplier: r.supplier_name,
+    "Account Number": r.account_number,
+    "Billing Name": r.billing_name,
+    "Login URL": r.login_url,
+  }))
+
   return (
     <div>
       <PageHeader
         title="Utilities"
         description={`${rows.length} utility account${rows.length !== 1 ? "s" : ""} across your portfolio.`}
         action={
-          <Link
-            href="/utilities/new"
-            className="inline-flex items-center gap-2 rounded-lg bg-stone-900 dark:bg-stone-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-stone-800 dark:hover:bg-stone-600 transition-colors"
-          >
-            <Plus className="h-4 w-4" />
-            Add utility
-          </Link>
+          <div className="flex items-center gap-2">
+            <ExportCsvButton data={csvData} filename="utilities" />
+            <Link
+              href="/utilities/new"
+              className="inline-flex items-center gap-2 rounded-lg bg-stone-900 dark:bg-stone-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-stone-800 dark:hover:bg-stone-600 transition-colors"
+            >
+              <Plus className="h-4 w-4" />
+              Add utility
+            </Link>
+          </div>
         }
       />
       <UtilitiesTable data={rows} />

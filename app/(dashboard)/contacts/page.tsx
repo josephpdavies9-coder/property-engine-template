@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { PageHeader } from "@/components/shared/PageHeader"
 import { ContactsTable, type ContactRow } from "@/components/contacts/ContactsTable"
+import { ExportCsvButton } from "@/components/shared/ExportCsvButton"
 import type { ContactCategory } from "@/lib/types/database.types"
 import Link from "next/link"
 import { Plus } from "lucide-react"
@@ -42,19 +43,31 @@ export default async function ContactsPage() {
     property_count: c.property_contacts?.length ?? 0,
   }))
 
+  const csvData = rows.map(r => ({
+    Name: r.full_name,
+    Company: r.company_name,
+    Category: r.category.replace(/_/g, ' '),
+    Phone: r.phone,
+    Email: r.email,
+    "Linked Properties": r.property_count,
+  }))
+
   return (
     <div>
       <PageHeader
         title="Contacts"
         description={`${rows.length} contact${rows.length !== 1 ? "s" : ""} in your directory.`}
         action={
-          <Link
-            href="/contacts/new"
-            className="inline-flex items-center gap-2 rounded-lg bg-stone-900 dark:bg-stone-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-stone-800 dark:hover:bg-stone-600 transition-colors"
-          >
-            <Plus className="h-4 w-4" />
-            Add contact
-          </Link>
+          <div className="flex items-center gap-2">
+            <ExportCsvButton data={csvData} filename="contacts" />
+            <Link
+              href="/contacts/new"
+              className="inline-flex items-center gap-2 rounded-lg bg-stone-900 dark:bg-stone-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-stone-800 dark:hover:bg-stone-600 transition-colors"
+            >
+              <Plus className="h-4 w-4" />
+              Add contact
+            </Link>
+          </div>
         }
       />
       <ContactsTable data={rows} />

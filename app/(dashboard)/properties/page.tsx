@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { PageHeader } from "@/components/shared/PageHeader"
 import { PropertiesTable, type PropertyRow } from "@/components/properties/PropertiesTable"
+import { ExportCsvButton } from "@/components/shared/ExportCsvButton"
 import type { PropertyStatus } from "@/lib/types/database.types"
 import Link from "next/link"
 import { Plus } from "lucide-react"
@@ -57,19 +58,32 @@ export default async function PropertiesPage() {
     }
   })
 
+  const csvData = rows.map(r => ({
+    Name: r.name,
+    Address: r.address,
+    Bedrooms: r.bedrooms,
+    Status: r.status,
+    Entity: r.entity,
+    "Mortgage Lender": r.mortgage_lender,
+    "Next Compliance Expiry": r.next_expiry,
+  }))
+
   return (
     <div>
       <PageHeader
         title="Properties"
         description={`${rows.length} propert${rows.length !== 1 ? "ies" : "y"} in your portfolio.`}
         action={
-          <Link
-            href="/properties/new"
-            className="inline-flex items-center gap-2 rounded-lg bg-stone-900 dark:bg-stone-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-stone-800 dark:hover:bg-stone-600 transition-colors"
-          >
-            <Plus className="h-4 w-4" />
-            Add property
-          </Link>
+          <div className="flex items-center gap-2">
+            <ExportCsvButton data={csvData} filename="properties" />
+            <Link
+              href="/properties/new"
+              className="inline-flex items-center gap-2 rounded-lg bg-stone-900 dark:bg-stone-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-stone-800 dark:hover:bg-stone-600 transition-colors"
+            >
+              <Plus className="h-4 w-4" />
+              Add property
+            </Link>
+          </div>
         }
       />
 

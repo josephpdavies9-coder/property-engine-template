@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { PageHeader } from "@/components/shared/PageHeader"
 import { ComplianceTable, type ComplianceRow } from "@/components/compliance/ComplianceTable"
+import { ExportCsvButton } from "@/components/shared/ExportCsvButton"
 import type { ComplianceDocType } from "@/lib/types/database.types"
 import Link from "next/link"
 import { Plus } from "lucide-react"
@@ -43,19 +44,29 @@ export default async function CompliancePage() {
     file_url: c.file_url,
   }))
 
+  const csvData = rows.map(r => ({
+    Property: r.property_name,
+    "Document Type": r.document_type.replace(/_/g, ' '),
+    "Issue Date": r.issue_date,
+    "Expiry Date": r.expiry_date,
+  }))
+
   return (
     <div>
       <PageHeader
         title="Compliance"
         description={`${rows.length} document${rows.length !== 1 ? "s" : ""} across your portfolio.`}
         action={
-          <Link
-            href="/compliance/new"
-            className="inline-flex items-center gap-2 rounded-lg bg-stone-900 dark:bg-stone-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-stone-800 dark:hover:bg-stone-600 transition-colors"
-          >
-            <Plus className="h-4 w-4" />
-            Add document
-          </Link>
+          <div className="flex items-center gap-2">
+            <ExportCsvButton data={csvData} filename="compliance" />
+            <Link
+              href="/compliance/new"
+              className="inline-flex items-center gap-2 rounded-lg bg-stone-900 dark:bg-stone-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-stone-800 dark:hover:bg-stone-600 transition-colors"
+            >
+              <Plus className="h-4 w-4" />
+              Add document
+            </Link>
+          </div>
         }
       />
       <ComplianceTable data={rows} />

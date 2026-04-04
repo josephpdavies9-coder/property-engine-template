@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { PageHeader } from "@/components/shared/PageHeader"
 import { MortgagesTable, type MortgageRow } from "@/components/mortgages/MortgagesTable"
+import { ExportCsvButton } from "@/components/shared/ExportCsvButton"
 import Link from "next/link"
 import { Plus } from "lucide-react"
 
@@ -47,19 +48,33 @@ export default async function MortgagesPage() {
     review_date: m.review_date,
   }))
 
+  const csvData = rows.map(r => ({
+    Property: r.property_name,
+    Lender: r.lender_name,
+    Product: r.product_name,
+    "Fixed Start": r.fixed_start_date,
+    "Fixed End": r.fixed_end_date,
+    "Monthly Payment (£)": r.monthly_payment,
+    "Loan Balance (£)": r.loan_balance,
+    "Review Date": r.review_date,
+  }))
+
   return (
     <div>
       <PageHeader
         title="Mortgages"
         description={`${rows.length} mortgage${rows.length !== 1 ? "s" : ""} across your portfolio.`}
         action={
-          <Link
-            href="/mortgages/new"
-            className="inline-flex items-center gap-2 rounded-lg bg-stone-900 dark:bg-stone-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-stone-800 dark:hover:bg-stone-600 transition-colors"
-          >
-            <Plus className="h-4 w-4" />
-            Add mortgage
-          </Link>
+          <div className="flex items-center gap-2">
+            <ExportCsvButton data={csvData} filename="mortgages" />
+            <Link
+              href="/mortgages/new"
+              className="inline-flex items-center gap-2 rounded-lg bg-stone-900 dark:bg-stone-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-stone-800 dark:hover:bg-stone-600 transition-colors"
+            >
+              <Plus className="h-4 w-4" />
+              Add mortgage
+            </Link>
+          </div>
         }
       />
       <MortgagesTable data={rows} />
