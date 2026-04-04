@@ -32,7 +32,7 @@ export function OwnershipChart({ entityEntries }: { entityEntries: EntityEntry[]
           className="rounded-xl px-8 py-3 text-sm font-semibold text-white tracking-wide shadow-sm"
           style={{ backgroundColor: '#1C1917' }}
         >
-          Joe &amp; Katy
+          James Rawlins
         </div>
 
         {/* Root → spine connector */}
