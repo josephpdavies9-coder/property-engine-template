@@ -261,7 +261,7 @@ export default async function DashboardPage() {
   // Group by property, only airbnb-status properties
   const airbnbReviews = new Map<string, { name: string; airbnb?: number; booking?: number }>()
   for (const r of reviewRows) {
-    if (!r.properties || r.properties.status !== "airbnb") continue
+    if (!r.properties) continue
     const pid = r.properties.id
     if (!airbnbReviews.has(pid)) airbnbReviews.set(pid, { name: r.properties.name })
     const entry = airbnbReviews.get(pid)!
